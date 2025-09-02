@@ -54,7 +54,7 @@
   };
   
   // ===================== COLOR SCALES =====================
-  function colorScale(v, min=0, max=20){
+  function colorScale(v, min=2.6, max=5){
     if (v == null || isNaN(v)) return "#e0e0e0";
     const clamped = Math.max(min, Math.min(max, v));
     const t = (clamped - min) / (max - min);
@@ -62,7 +62,7 @@
     return `hsl(${hue}, 100%, 50%)`;
   }
   
-  function pointColor(v, min=2.6, max=5.0){
+  function pointColor(v, min=2.6, max=5){
     if (v == null || isNaN(v)) return "#666";
     const clamped = Math.max(min, Math.min(max, v));
     const t = (clamped - min) / (max - min);
@@ -228,6 +228,7 @@
 </body>
 
 </html>
+
 
 
 
