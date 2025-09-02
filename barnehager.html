@@ -95,7 +95,7 @@
       await addBarnehager();
 
       // Legend
-      buildLegend();
+      // buildLegend();
     }
 
     async function addChoroplethLayer(url, styleFn){
@@ -172,7 +172,7 @@
   <!--<div class="ctl">Wheel: Zoom · Click: Info</div>
   <div class="legend" id="legend">Legend</div>-->
   <script>
-    function buildLegend(){
+    /*function buildLegend(){
       const lg = document.getElementById("legend");
       const bins = [[0,5],[5,10],[10,15],[15,20],[20,Infinity]];
       for (const [a,b] of bins){
@@ -183,7 +183,7 @@
         row.innerHTML = `<span style="display:inline-block;width:12px;height:12px;background:${c};border:1px solid #aaa;margin-right:6px;"></span>${label}`;
         lg.appendChild(row);
       }
-    }
+    }*/
   </script>
   
   <script defer src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.umd.js"></script>
@@ -195,6 +195,7 @@
 </body>
 
 </html>
+
 
 
 
