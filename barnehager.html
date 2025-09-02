@@ -16,11 +16,11 @@
     const KOMMUNE_GEOJSON_URL = "./kommune.geojson";  // kommunes from Geonorge formatted
     const BARNEHAGER_API_URL  = "/proxy/udir/barnehager"; // ваш серверный прокси к Udir API (JSON)
 
-    // Пример: таблица показателей по fylke/kommune (ключи — номера/коды). Подставьте свои данные.
+    // Sample: table with values per  fylke/kommune (keys — numbers/codes). set your values
     const metricsFylke   = {}; // { "03": 12.3, "11": 7.9, ... }
     const metricsKommune = {}; // { "0301": 10.1, "1103": 5.2, ... }
 
-    // Функция маппинга "значение -> цвет"
+    // Mapping function - value means color
     function colorScale(v){
       if (v == null || isNaN(v)) return "#e0e0e0";
       if (v < 5)   return "#cfe8ff";
@@ -30,7 +30,7 @@
       return "#0078ff";
     }
 
-    // Цвет точки детсада по его значению (например, рейтинг/показатель)
+    // Set barnehage circle color buy value
     function pointColor(v){
       if (v == null) return "#666";
       if (v < 5)  return "#ffb3b3";
@@ -38,7 +38,7 @@
       return "#ff3333";
     }
 
-    // === ИНИЦИАЛИЗАЦИЯ КАРТЫ ===
+    // === MAP initialization ===
     let map, fylkeLayer, kommuneLayer, markers = [], markerCluster;
 
     async function initMap(){
@@ -47,12 +47,12 @@
 
       map = new Map(document.getElementById("map"), {
         center: {lat: 64.5, lng: 11.0},
-        zoom: 4.8, // быстро "подлетим" к Норвегии
-        mapId: "DEMO_MAP_ID" // (опционально) ваш vector mapId из Cloud Console
+        zoom: 4.8, //Zoom to Norway
+        mapId: "DEMO_MAP_ID" // Optionally - your vector mapId from Cloud Console
       });
-      map.addListener("tilesloaded", ()=>map.setZoom(5.2)); // доведение после загрузки
+      map.addListener("tilesloaded", ()=>map.setZoom(5.2)); // Zooming after load
 
-      // Загрузим и нарисуем fylke
+      // Load and draw fylke
       fylkeLayer = await addChoroplethLayer(FYLKE_GEOJSON_URL, feature => {
         const id = feature.getProperty("fylkesnummer") || feature.getProperty("fylke_nr");
         const v  = metricsFylke[id];
@@ -64,7 +64,7 @@
         };
       });
 
-      // Загрузим kommuner (скрыты на дальнем масштабе)
+      // Load kommuner (hidden on far zoom)
       kommuneLayer = await addChoroplethLayer(KOMMUNE_GEOJSON_URL, feature => {
         const id = feature.getProperty("kommunenummer") || feature.getProperty("komm_nr");
         const v  = metricsKommune[id];
@@ -75,9 +75,9 @@
           fillOpacity: 0.75
         };
       });
-      kommuneLayer.setMap(null); // пока скрыт
+      kommuneLayer.setMap(null); // hidden for a while
 
-      // Переключение слоёв по зуму
+      // Switching to kommunes by zooming
       const showKommunerFromZoom = 8;
       map.addListener("zoom_changed", ()=>{
         const z = map.getZoom();
@@ -90,16 +90,16 @@
         }
       });
 
-      // Точки детсадов
+      // Drops of Barnehager
       await addBarnehager();
 
-      // Легенда
+      // Legend
       buildLegend();
     }
 
     async function addChoroplethLayer(url, styleFn){
-      // Используем новую VectorFeatureLayer через DataLayer-полифилл на GeoJSON
-      // (универсально и прозрачно). Для крупных файлов включите gzip на сервере.
+      // Use new  VectorFeatureLayer via DataLayer-polyfill on GeoJSON
+      // (universal and transparent). Turn on gzip on server for big files
       const layer = new google.maps.Data({ map });
       const resp = await fetch(url, {cache:"no-store"});
       const gj = await resp.json();
@@ -129,7 +129,7 @@
 
     async function addBarnehager(){
       const resp = await fetch(BARNEHAGER_API_URL, {cache:"no-store"});
-      const items = await resp.json(); // ожидается массив {lat, lng, value, name, ...}
+      const items = await resp.json(); // Expecting array {lat, lng, value, name, ...}
       for (const it of items){
         const m = new google.maps.marker.AdvancedMarkerElement({
           map,
@@ -139,17 +139,17 @@
         });
         m.addListener("click", ()=>{
           new google.maps.InfoWindow({
-            content: `<b>${it.name ?? "Barnehage"}</b><br/>Показатель: ${it.value ?? "—"}`
+            content: `<b>${it.name ?? "Barnehage"}</b><br/>Parameter: ${it.value ?? "—"}`
           }).open({ map, anchor: m });
         });
         markers.push(m);
       }
-      // Кластеризация (опционально)
+      // Clasterization (optionally)
       const { MarkerClusterer } = await import("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
       markerCluster = new MarkerClusterer({ markers, map });
     }
 
-    // Простой SVG-пин нужного цвета
+    // simple SVG-pin of required color
     function pinSvg(color){
       const div = document.createElement("div");
       div.innerHTML = `
@@ -165,8 +165,8 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="ctl">Колеса: зум · Клик: инфо</div>
-  <div class="legend" id="legend">Легенда</div>
+  <div class="ctl">Wheel: Zoom · Click: Info</div>
+  <div class="legend" id="legend">Legend</div>
   <script>
     function buildLegend(){
       const lg = document.getElementById("legend");
@@ -182,10 +182,11 @@
     }
   </script>
   <script async
-    src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_MAPS_API_KEY&libraries=maps,marker&callback=initMap"></script>
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBAkTsDSCyrZ6zOdMuynDewilR2WpJFyKc&libraries=maps,marker&callback=initMap"></script>
 </body>
 
 </html>
+
 
 
 
