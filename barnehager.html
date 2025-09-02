@@ -62,7 +62,8 @@
           fillColor: colorScale(v),
           strokeColor: "#444",
           strokeWeight: 0.5,
-          fillOpacity: 0.7
+          fillOpacity: 0.4,
+          zIndex: 1
         };
       });
 
@@ -74,7 +75,8 @@
           fillColor: colorScale(v),
           strokeColor: "#555",
           strokeWeight: 0.25,
-          fillOpacity: 0.75
+          fillOpacity: 0.45,
+          zIndex: 2
         };
       });
       kommuneLayer.setMap(null); // hidden for a while
@@ -147,13 +149,14 @@
         markers.push(m);*/
 
         const circle = new google.maps.Circle({
-        map,
-        center: {lat: it.lat, lng: it.lng},
-        radius: 50, // радиус в метрах, ~5 px на типичном масштабе
-        strokeWeight: 2,
-        strokeColor: pointColor(it.value),
-        fillColor: pointColor(it.value),
-        fillOpacity: 0.9
+          map,
+          center: {lat: it.lat, lng: it.lng},
+          radius: 50, // радиус в метрах, ~5 px на типичном масштабе
+          strokeWeight: 2,
+          strokeColor: pointColor(it.value),
+          fillColor: pointColor(it.value),
+          fillOpacity: 0.9,
+          zIndex: 1000
         });
         circle.addListener("click", ()=>{
           new google.maps.InfoWindow({
@@ -214,6 +217,7 @@
 </body>
 
 </html>
+
 
 
 
