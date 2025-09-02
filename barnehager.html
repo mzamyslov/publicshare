@@ -148,6 +148,53 @@
           zIndex: 2
         };
       });
+
+const opacityConfig = {
+  fylke: {
+    minZoom: 5,
+    maxZoom: 10,
+    minOpacity: 0.3,
+    maxOpacity: 0.8
+  },
+  kommune: {
+    minZoom: 7,
+    maxZoom: 12,
+    minOpacity: 0.2,
+    maxOpacity: 0.9
+  }
+};
+
+function opacityForZoom(zoom, cfg){
+  const t = Math.min(1, Math.max(0, (zoom - cfg.minZoom) / (cfg.maxZoom - cfg.minZoom)));
+  return cfg.minOpacity + t * (cfg.maxOpacity - cfg.minOpacity);
+}
+
+map.addListener("zoom_changed", () => {
+  const z = map.getZoom();
+
+  const fylkeOpacity   = opacityForZoom(z, opacityConfig.fylke);
+  const kommuneOpacity = opacityForZoom(z, opacityConfig.kommune);
+
+  fylkeLayer.style = f => ({
+    fillColor: colorScale(metricsFylke[f.feature.getProperty("fylkesnummer")]),
+    fillOpacity: fylkeOpacity,
+    strokeColor: "#444",
+    strokeWeight: 1,
+    zIndex: 1
+  });
+
+  kommuneLayer.style = f => ({
+    fillColor: colorScale(metricsKommune[f.feature.getProperty("kommunenummer")]),
+    fillOpacity: kommuneOpacity,
+    strokeColor: "#555",
+    strokeWeight: 0.7,
+    zIndex: 2
+  });
+});
+
+
+
+      
       kommuneLayer.setMap(null); // hidden for a while
 
       // Switching to kommunes by zooming
@@ -273,6 +320,7 @@
 </body>
 
 </html>
+
 
 
 
