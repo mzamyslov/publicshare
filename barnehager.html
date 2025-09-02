@@ -50,7 +50,8 @@
         zoom: 4.8, //Zoom to Norway
         mapId: "DEMO_MAP_ID" // Optionally - your vector mapId from Cloud Console
       });
-      map.addListener("tilesloaded", ()=>map.setZoom(5.2)); // Zooming after load
+      //map.addListener("tilesloaded", ()=>map.setZoom(5.2)); // Zooming after load
+      google.maps.event.addListenerOnce(map, "tilesloaded", () => map.setZoom(5.2));
 
       // Load and draw fylke
       fylkeLayer = await addChoroplethLayer(FYLKE_GEOJSON_URL, feature => {
@@ -165,8 +166,8 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="ctl">Wheel: Zoom · Click: Info</div>
-  <div class="legend" id="legend">Legend</div>
+  <!--<div class="ctl">Wheel: Zoom · Click: Info</div>
+  <div class="legend" id="legend">Legend</div>-->
   <script>
     function buildLegend(){
       const lg = document.getElementById("legend");
@@ -186,6 +187,7 @@
 </body>
 
 </html>
+
 
 
 
