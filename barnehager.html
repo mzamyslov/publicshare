@@ -132,8 +132,8 @@
     async function addBarnehager(){
       const resp = await fetch(BARNEHAGER_API_URL, {cache:"no-store"});
       const items = await resp.json(); // Expecting array {lat, lng, value, name, ...}
-      for (const it of items){
-        const m = new google.maps.marker.AdvancedMarkerElement({
+       for (const it of items){
+        /*const m = new google.maps.marker.AdvancedMarkerElement({
           map,
           position: {lat: it.lat, lng: it.lng},
           content: pinSvg(pointColor(it.value)),
@@ -144,7 +144,24 @@
             content: `<b>${it.name ?? "Barnehage"}</b><br/>Parameter: ${it.value ?? "—"}`
           }).open({ map, anchor: m });
         });
-        markers.push(m);
+        markers.push(m);*/
+
+        const circle = new google.maps.Circle({
+        map,
+        center: {lat: it.lat, lng: it.lng},
+        radius: 50, // радиус в метрах, ~5 px на типичном масштабе
+        strokeWeight: 1,
+        fillColor: pointColor(it.value),
+        fillOpacity: 0.9
+        });
+        circle.addListener("click", ()=>{
+          new google.maps.InfoWindow({
+            content: `<b>${it.name ?? "Barnehage"}</b><br/>Показатель: ${it.value ?? "—"}`
+          }).open({ map, position: {lat: it.lat, lng: it.lng} });
+        });
+        markers.push(circle);
+
+         
       }
       // Clasterization (optionally)
       /*const { MarkerClusterer } = await import("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
@@ -196,6 +213,7 @@
 </body>
 
 </html>
+
 
 
 
