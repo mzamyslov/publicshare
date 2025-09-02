@@ -54,7 +54,7 @@
   };
   
   // ===================== COLOR SCALES =====================
-  function colorScale(v, min=2.6, max=5){
+  function colorScale(v, min=5, max=9){
     if (v == null || isNaN(v)) return "#e0e0e0";
     const clamped = Math.max(min, Math.min(max, v));
     const t = (clamped - min) / (max - min);
@@ -228,6 +228,7 @@
 </body>
 
 </html>
+
 
 
 
