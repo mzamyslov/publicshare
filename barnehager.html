@@ -9,7 +9,7 @@
     .legend{position:absolute;bottom:12px;left:12px;background:#fff;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
     .ctl{position:absolute;top:12px;left:12px;background:#fff;padding:6px 8px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
   </style>
-  <script type="module">
+  <script defer type="module">
 
     // === Params ===
     const FYLKE_GEOJSON_URL = "./fylke.geojson";    // fulke from Geonorge formatted
@@ -149,7 +149,8 @@
       /*const { MarkerClusterer } = await import("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
       markerCluster = new MarkerClusterer({ markers, map });*/
       
-      import { MarkerClusterer } from "https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js";
+      // import { MarkerClusterer } from "https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js";
+      markerCluster = new markerClusterer.MarkerClusterer({ map, markers });
     }
 
     // simple SVG-pin of required color
@@ -184,13 +185,17 @@
       }
     }
   </script>
-  <script async
+  
+  <script defer src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.umd.js"></script>
+  
+  <script defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBAkTsDSCyrZ6zOdMuynDewilR2WpJFyKc&libraries=maps,marker&callback=initMap"></script>
 
-  <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.umd.js"></script>
+
 </body>
 
 </html>
+
 
 
 
