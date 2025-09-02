@@ -60,7 +60,7 @@
         return {
           fillColor: colorScale(v),
           strokeColor: "#444",
-          strokeWeight: 1,
+          strokeWeight: 0.5,
           fillOpacity: 0.7
         };
       });
@@ -72,14 +72,14 @@
         return {
           fillColor: colorScale(v),
           strokeColor: "#555",
-          strokeWeight: 0.7,
+          strokeWeight: 0.25,
           fillOpacity: 0.75
         };
       });
       kommuneLayer.setMap(null); // hidden for a while
 
       // Switching to kommunes by zooming
-      const showKommunerFromZoom = 8;
+      const showKommunerFromZoom = 9;
       map.addListener("zoom_changed", ()=>{
         const z = map.getZoom();
         if (z >= showKommunerFromZoom){
@@ -187,6 +187,7 @@
 </body>
 
 </html>
+
 
 
 
