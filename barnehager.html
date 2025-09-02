@@ -24,16 +24,16 @@
     },
     opacity: {
       // ВАЖНО: maxOpacity применяется на малом зуме, minOpacity — на большом (уменьшаем opacity при приближении)
-      fylke:   { minZoom: 5,  maxZoom: 9,  maxOpacity: 0.35, minOpacity: 0.08 },
-      kommune: { minZoom: 7,  maxZoom: 12, maxOpacity: 0.45, minOpacity: 0.12 },
+      fylke:   { minZoom: 1,  maxZoom: 9,  maxOpacity: 0.9, minOpacity: 0.3 },
+      kommune: { minZoom: 9,  maxZoom: 12, maxOpacity: 0.7, minOpacity: 0.05 },
     },
     poly: {
-      fylkeStroke: 0.5,
-      kommuneStroke: 0.25,
+      fylkeStroke: 0.3,
+      kommuneStroke: 0.3,
     },
     points: {
       radiusM: 40,
-      strokeWeight: 1.5,
+      strokeWeight: 4,
     },
     mapStyle: [
       { elementType: "geometry", stylers: [{ color: "#5a5a5a" }] },
@@ -228,6 +228,7 @@
 </body>
 
 </html>
+
 
 
 
