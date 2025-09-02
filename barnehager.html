@@ -146,8 +146,10 @@
         markers.push(m);
       }
       // Clasterization (optionally)
-      const { MarkerClusterer } = await import("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
-      markerCluster = new MarkerClusterer({ markers, map });
+      /*const { MarkerClusterer } = await import("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
+      markerCluster = new MarkerClusterer({ markers, map });*/
+      
+      import { MarkerClusterer } from "https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js";
     }
 
     // simple SVG-pin of required color
@@ -184,9 +186,12 @@
   </script>
   <script async
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBAkTsDSCyrZ6zOdMuynDewilR2WpJFyKc&libraries=maps,marker&callback=initMap"></script>
+
+  <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.umd.js"></script>
 </body>
 
 </html>
+
 
 
 
