@@ -10,287 +10,195 @@
     .ctl{position:absolute;top:12px;left:12px;background:#fff;padding:6px 8px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
   </style>
   <script src="metrics.js"></script>
-  <script defer type="module">
-
-    // === Params ===
-    const FYLKE_GEOJSON_URL = "./fylke.geojson";    // fulke from Geonorge formatted
-    const KOMMUNE_GEOJSON_URL = "./kommune.geojson";  // kommunes from Geonorge formatted
-    const BARNEHAGER_API_URL  = "./barnehager.json"; // ваш серверный прокси к Udir API (JSON)
-
-    // Sample: table with values per  fylke/kommune (keys — numbers/codes). set your values
-    /*const metricsFylke   = {}; // { "03": 12.3, "11": 7.9, ... }
-    const metricsKommune = {}; // { "0301": 10.1, "1103": 5.2, ... }*/
-
-    // Mapping function - value means color
-    /*function colorScale(v){
-      if (v == null || isNaN(v)) return "#e0e0e0";
-      if (v < 5)   return "#cfe8ff";
-      if (v < 10)  return "#9dd1ff";
-      if (v < 15)  return "#6bb9ff";
-      if (v < 20)  return "#399eff";
-      return "#0078ff";
-    }*/
-
-
-    // Set barnehage circle color buy value
-/*    function pointColor(v){
-      if (v == null) return "#666";
-      if (v < 5)  return "#ffb3b3";
-      if (v < 10) return "#ff8080";
-      return "#ff3333";
-    }*/
-    function colorScale(v, min=0, max=20){
-      if (v == null || isNaN(v)) return "#e0e0e0";
-      const clamped = Math.max(min, Math.min(max, v));
-      const t = (clamped - min) / (max - min);
-      const hue = 0 + t * 120;
-      // return `hsl(${hue}, 80%, 40%)`;
-      return `hsl(${hue}, 100%, 50%)`;
-    }
-
-    function pointColor(v, min=0, max=10){
-      if (v == null || isNaN(v)) return "#666";
-      const clamped = Math.max(min, Math.min(max, v));
-      const t = (clamped - min) / (max - min);
-      const hue = 0 + t * 120;
-      // return `hsl(${hue}, 100%, 40%)`;
-      return `hsl(${hue}, 100%, 50%)`;
-    }
-
-    // === MAP initialization ===
-    let map, fylkeLayer, kommuneLayer, markers = [], markerCluster;
-
-    async function initMap(){
-      const { Map } = await google.maps.importLibrary("maps");
-      const { Marker } = await google.maps.importLibrary("marker");
-
-      /* map = new Map(document.getElementById("map"), {
-        center: {lat: 64.5, lng: 11.0},
-        zoom: 4.8, //Zoom to Norway
-        mapId: "DEMO_MAP_ID" // Optionally - your vector mapId from Cloud Console
-      });*/
-
-      map = new Map(document.getElementById("map"), {
-        center: {lat: 64.5, lng: 11.0},
-        zoom: 4.8,
-        //mapId: "DEMO_MAP_ID",
-        /*styles: [
-
-          { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
-          { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-          { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-          { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
-          { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
-          { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
-          { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-          { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
-          { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-          { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-          { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-          { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
-          { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-          { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-          { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
-          { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
-          { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
-          { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] }
-        ]*/
-        styles: [
-          { elementType: "geometry", stylers: [{ color: "#5a5a5a" }] },
-      
-          { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-          { elementType: "labels.text.fill", stylers: [{ color: "#f0f0f0" }] },
-          { elementType: "labels.text.stroke", stylers: [{ color: "#5a5a5a" }] },
-      
-          { featureType: "poi", elementType: "geometry", stylers: [{ color: "#4f4f4f" }] },
-          { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#494949" }] },
-      
-          { featureType: "road", elementType: "geometry", stylers: [{ color: "#bfbfbf" }] },
-          { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#a6a6a6" }] },
-          { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#b0b0b0" }] },
-          { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#ffffff" }] },
-      
-          { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#9c9c9c" }] },
-          { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#a8a8a8" }] },
-      
-          { featureType: "water", elementType: "geometry", stylers: [{ color: "#d6d6d6" }] },
-          { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#666666" }] }
-        ]
-          
-      });
-
-      
-      //map.addListener("tilesloaded", ()=>map.setZoom(5.2)); // Zooming after load
-      google.maps.event.addListenerOnce(map, "tilesloaded", () => map.setZoom(5.2));
-
-      // Load and draw fylke
-      fylkeLayer = await addChoroplethLayer(FYLKE_GEOJSON_URL, feature => {
-        const id = feature.getProperty("fylkesnummer") || feature.getProperty("fylke_nr");
-        const v  = metricsFylke[id];
-        return {
-          fillColor: colorScale(v),
-          strokeColor: "#a444",
-          strokeWeight: 0.5,
-          fillOpacity: 0.2,
-          zIndex: 1
-        };
-      });
-
-      // Load kommuner (hidden on far zoom)
-      kommuneLayer = await addChoroplethLayer(KOMMUNE_GEOJSON_URL, feature => {
-        const id = feature.getProperty("kommunenummer") || feature.getProperty("komm_nr");
-        const v  = metricsKommune[id];
-        return {
-          fillColor: colorScale(v),
-          strokeColor: colorScale(v),    // "#a555",
-          strokeWeight: 0.25,
-          fillOpacity: 0.25,
-          zIndex: 2
-        };
-      });
-
-const opacityConfig = {
-  fylke: {
-    minZoom: 5,
-    maxZoom: 10,
-    minOpacity: 0.3,
-    maxOpacity: 0.8
-  },
-  kommune: {
-    minZoom: 7,
-    maxZoom: 12,
-    minOpacity: 0.2,
-    maxOpacity: 0.9
+<script defer type="module">
+  // ===================== CONFIG =====================
+  const CFG = {
+    urls: {
+      fylke: "./fylke.geojson",
+      kommune: "./kommune.geojson",
+      barnehager: "./barnehager.json",
+    },
+    zoom: {
+      initial: 5.2,
+      showKommunerFrom: 9, // с какого зума показывать kommuner вместо fylke
+    },
+    opacity: {
+      // ВАЖНО: maxOpacity применяется на малом зуме, minOpacity — на большом (уменьшаем opacity при приближении)
+      fylke:   { minZoom: 5,  maxZoom: 9,  maxOpacity: 0.35, minOpacity: 0.08 },
+      kommune: { minZoom: 7,  maxZoom: 12, maxOpacity: 0.45, minOpacity: 0.12 },
+    },
+    poly: {
+      fylkeStroke: 0.5,
+      kommuneStroke: 0.25,
+    },
+    points: {
+      radiusM: 40,
+      strokeWeight: 1.5,
+    },
+    mapStyle: [
+      { elementType: "geometry", stylers: [{ color: "#5a5a5a" }] },
+      { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#f0f0f0" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#5a5a5a" }] },
+      { featureType: "poi", elementType: "geometry", stylers: [{ color: "#4f4f4f" }] },
+      { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#494949" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ color: "#bfbfbf" }] },
+      { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#a6a6a6" }] },
+      { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#b0b0b0" }] },
+      { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#ffffff" }] },
+      { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#9c9c9c" }] },
+      { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#a8a8a8" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#d6d6d6" }] }, // светлее суши
+      { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#666666" }] }
+    ],
+  };
+  
+  // ===================== COLOR SCALES =====================
+  function colorScale(v, min=0, max=20){
+    if (v == null || isNaN(v)) return "#e0e0e0";
+    const clamped = Math.max(min, Math.min(max, v));
+    const t = (clamped - min) / (max - min);
+    const hue = 0 + t * 120; // 0=красный → 120=зелёный
+    return `hsl(${hue}, 100%, 50%)`;
   }
-};
-
-function opacityForZoom(zoom, cfg){
-  const t = Math.min(1, Math.max(0, (zoom - cfg.minZoom) / (cfg.maxZoom - cfg.minZoom)));
-  return cfg.minOpacity + t * (cfg.maxOpacity - cfg.minOpacity);
-}
-
-map.addListener("zoom_changed", () => {
-  const z = map.getZoom();
-
-  const fylkeOpacity   = opacityForZoom(z, opacityConfig.fylke);
-  const kommuneOpacity = opacityForZoom(z, opacityConfig.kommune);
-
-  fylkeLayer.style = f => ({
-    fillColor: colorScale(metricsFylke[f.feature.getProperty("fylkesnummer")]),
-    fillOpacity: fylkeOpacity,
-    strokeColor: "#444",
-    strokeWeight: 1,
-    zIndex: 1
-  });
-
-  kommuneLayer.style = f => ({
-    fillColor: colorScale(metricsKommune[f.feature.getProperty("kommunenummer")]),
-    fillOpacity: kommuneOpacity,
-    strokeColor: "#555",
-    strokeWeight: 0.7,
-    zIndex: 2
-  });
-});
-
-
-
-      
-      kommuneLayer.setMap(null); // hidden for a while
-
-      // Switching to kommunes by zooming
-      const showKommunerFromZoom = 9;
-      map.addListener("zoom_changed", ()=>{
-        const z = map.getZoom();
-        if (z >= showKommunerFromZoom){
-          fylkeLayer.setMap(null);
-          kommuneLayer.setMap(map);
-        } else {
-          kommuneLayer.setMap(null);
-          fylkeLayer.setMap(map);
-        }
-      });
-
-      // Drops of Barnehager
-      await addBarnehager();
-
-      // Legend
-      // buildLegend();
-    }
-
-    async function addChoroplethLayer(url, styleFn){
-      // Use new  VectorFeatureLayer via DataLayer-polyfill on GeoJSON
-      // (universal and transparent). Turn on gzip on server for big files
-      const layer = new google.maps.Data({ map });
-      const resp = await fetch(url, {cache:"no-store"});
-      const gj = await resp.json();
-      layer.addGeoJson(gj, { idPropertyName: "id" });
-      layer.setStyle(styleFn);
-
-      layer.addListener("mouseover", e => {
-        layer.overrideStyle(e.feature, { strokeWeight: 2 });
-        map.getDiv().style.cursor = "pointer";
-      });
-      layer.addListener("mouseout", e => {
-        layer.revertStyle(e.feature);
-        map.getDiv().style.cursor = "default";
-      });
-      layer.addListener("click", e => {
-        const name = e.feature.getProperty("navn") || e.feature.getProperty("name");
-        const val =
-          metricsFylke[e.feature.getProperty("fylkesnummer")] ??
-          metricsKommune[e.feature.getProperty("kommunenummer")];
-        new google.maps.InfoWindow({
-          content: `<b>${name ?? "Region"}</b><br/>Значение: ${val ?? "—"}`
-        }).open({ map, position: e.latLng });
-      });
-
-      return layer;
-    }
-
-    async function addBarnehager(){
-      const resp = await fetch(BARNEHAGER_API_URL, {cache:"no-store"});
-      const items = await resp.json(); // Expecting array {lat, lng, value, name, ...}
-       for (const it of items){
-        const circle = new google.maps.Circle({
-          map,
-          center: {lat: it.lat, lng: it.lng},
-          radius: 40, // радиус в метрах, ~5 px на типичном масштабе
-          strokeWeight: 4,
-          strokeColor: pointColor(it.value),
-          fillColor: pointColor(it.value),
-          fillOpacity: 0.9,
-          zIndex: 1000
-        });
-        circle.addListener("click", ()=>{
-          new google.maps.InfoWindow({
-            content: `<b>${it.name ?? "Barnehage"}</b><br/>Показатель: ${it.value ?? "—"}`
-          }).open({ map, position: {lat: it.lat, lng: it.lng} });
-        });
-        markers.push(circle);
-
-         
+  
+  function pointColor(v, min=0, max=10){
+    if (v == null || isNaN(v)) return "#666";
+    const clamped = Math.max(min, Math.min(max, v));
+    const t = (clamped - min) / (max - min);
+    const hue = 0 + t * 120;
+    return `hsl(${hue}, 100%, 50%)`;
+  }
+  
+  // ===================== HELPERS =====================
+  function clamp01(x){ return Math.min(1, Math.max(0, x)); }
+  
+  // Прозрачность, которая УМЕНЬШАЕТСЯ при увеличении зума:
+  // при minZoom → maxOpacity, при maxZoom → minOpacity
+  function opacityForZoomDown(zoom, cfg){
+    const t = clamp01((zoom - cfg.minZoom) / (cfg.maxZoom - cfg.minZoom));
+    return cfg.maxOpacity - t * (cfg.maxOpacity - cfg.minOpacity);
+  }
+  
+  // ===================== MAP + LAYERS =====================
+  let map, fylkeLayer, kommuneLayer, markers = [];
+  
+  async function initMap(){
+    const { Map } = await google.maps.importLibrary("maps");
+  
+    map = new Map(document.getElementById("map"), {
+      center: {lat: 64.5, lng: 11.0},
+      zoom: CFG.zoom.initial,
+      styles: CFG.mapStyle
+    });
+  
+    // Слои
+    const styleFylke = f => {
+      const id = f.getProperty("fylkesnummer") || f.getProperty("fylke_nr");
+      const v = (typeof metricsFylke !== "undefined") ? metricsFylke[id] : undefined;
+      const c = colorScale(v);
+      return {
+        fillColor: c,
+        fillOpacity: opacityForZoomDown(map.getZoom(), CFG.opacity.fylke),
+        strokeColor: c,
+        strokeWeight: CFG.poly.fylkeStroke,
+        zIndex: 1
+      };
+    };
+  
+    const styleKommune = f => {
+      const id = f.getProperty("kommunenummer") || f.getProperty("komm_nr");
+      const v = (typeof metricsKommune !== "undefined") ? metricsKommune[id] : undefined;
+      const c = colorScale(v);
+      return {
+        fillColor: c,
+        fillOpacity: opacityForZoomDown(map.getZoom(), CFG.opacity.kommune),
+        strokeColor: c,
+        strokeWeight: CFG.poly.kommuneStroke,
+        zIndex: 2
+      };
+    };
+  
+    fylkeLayer   = await addChoroplethLayer(CFG.urls.fylke,   styleFylke);
+    kommuneLayer = await addChoroplethLayer(CFG.urls.kommune, styleKommune);
+    kommuneLayer.setMap(null); // по умолчанию скрыт
+  
+    // Переключение слоёв + обновление стилей на каждый зум
+    map.addListener("zoom_changed", ()=>{
+      const z = map.getZoom();
+      if (z >= CFG.zoom.showKommunerFrom){
+        fylkeLayer.setMap(null);
+        kommuneLayer.setMap(map);
+      } else {
+        kommuneLayer.setMap(null);
+        fylkeLayer.setMap(map);
       }
-      // Clasterization (optionally)
-      /*const { MarkerClusterer } = await import("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
-      markerCluster = new MarkerClusterer({ markers, map });*/
-      
-      // import { MarkerClusterer } from "https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js";
-      // markerCluster = new markerClusterer.MarkerClusterer({ map, markers });
+      // перезапросить стили (Data заново применит styleFn)
+      fylkeLayer.setStyle(styleFylke);
+      kommuneLayer.setStyle(styleKommune);
+    });
+  
+    // Точки Barnehager как кружки
+    await addBarnehager();
+  
+    // Легенду можно вернуть при желании
+    // buildLegend();
+  }
+  
+  async function addChoroplethLayer(url, styleFn){
+    const layer = new google.maps.Data({ map });
+    const resp = await fetch(url, {cache:"no-store"});
+    const gj = await resp.json();
+    layer.addGeoJson(gj, { idPropertyName: "id" });
+    layer.setStyle(styleFn);
+  
+    layer.addListener("mouseover", e => {
+      layer.overrideStyle(e.feature, { strokeWeight: 2 });
+      map.getDiv().style.cursor = "pointer";
+    });
+    layer.addListener("mouseout", e => {
+      layer.revertStyle(e.feature);
+      map.getDiv().style.cursor = "default";
+    });
+    layer.addListener("click", e => {
+      const name = e.feature.getProperty("navn") || e.feature.getProperty("name");
+      const val =
+        (typeof metricsFylke !== "undefined" ? metricsFylke[e.feature.getProperty("fylkesnummer")] : undefined) ??
+        (typeof metricsKommune !== "undefined" ? metricsKommune[e.feature.getProperty("kommunenummer")] : undefined);
+      new google.maps.InfoWindow({
+        content: `<b>${name ?? "Region"}</b><br/>Значение: ${val ?? "—"}`
+      }).open({ map, position: e.latLng });
+    });
+  
+    return layer;
+  }
+  
+  async function addBarnehager(){
+    const resp = await fetch(CFG.urls.barnehager, {cache:"no-store"});
+    const items = await resp.json(); // [{lat,lng,name,value},...]
+  
+    for (const it of items){
+      const circle = new google.maps.Circle({
+        map,
+        center: {lat: it.lat, lng: it.lng},
+        radius: CFG.points.radiusM,               // в метрах
+        strokeWeight: CFG.points.strokeWeight,
+        strokeColor: pointColor(it.value, 2, 9),  // градиент красный→зелёный
+        fillColor:   pointColor(it.value, 2, 9),
+        fillOpacity: 0.9,
+        zIndex: 1000
+      });
+      circle.addListener("click", ()=>{
+        new google.maps.InfoWindow({
+          content: `<b>${it.name ?? "Barnehage"}</b><br/>Показатель: ${it.value ?? "—"}`
+        }).open({ map, position: {lat: it.lat, lng: it.lng} });
+      });
+      markers.push(circle);
     }
-
-    // simple SVG-pin of required color
-    function pinSvg(color){
-      const div = document.createElement("div");
-      div.innerHTML = `
-        <svg width="24" height="36" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 36s10-12 10-21A10 10 0 1 0 2 15c0 9 10 21 10 21z" fill="${color}"/>
-          <circle cx="12" cy="14" r="4" fill="#fff"/>
-        </svg>`;
-      return div;
-    }
-
-    window.initMap = initMap;
-  </script>
+  }
+  
+  window.initMap = initMap;
+</script>
 </head>
 <body>
   <div id="map"></div>
@@ -320,6 +228,7 @@ map.addListener("zoom_changed", () => {
 </body>
 
 </html>
+
 
 
 
