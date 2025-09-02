@@ -9,6 +9,7 @@
     .legend{position:absolute;bottom:12px;left:12px;background:#fff;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
     .ctl{position:absolute;top:12px;left:12px;background:#fff;padding:6px 8px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
   </style>
+  <script src="metrics.js"></script>
   <script defer type="module">
 
     // === Params ===
@@ -17,8 +18,8 @@
     const BARNEHAGER_API_URL  = "./barnehager.json"; // ваш серверный прокси к Udir API (JSON)
 
     // Sample: table with values per  fylke/kommune (keys — numbers/codes). set your values
-    const metricsFylke   = {}; // { "03": 12.3, "11": 7.9, ... }
-    const metricsKommune = {}; // { "0301": 10.1, "1103": 5.2, ... }
+    /*const metricsFylke   = {}; // { "03": 12.3, "11": 7.9, ... }
+    const metricsKommune = {}; // { "0301": 10.1, "1103": 5.2, ... }*/
 
     // Mapping function - value means color
     function colorScale(v){
@@ -195,6 +196,7 @@
 </body>
 
 </html>
+
 
 
 
