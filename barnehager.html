@@ -62,7 +62,7 @@
     return `hsl(${hue}, 100%, 50%)`;
   }
   
-  function pointColor(v, min=0, max=10){
+  function pointColor(v, min=2.6, max=5.0){
     if (v == null || isNaN(v)) return "#666";
     const clamped = Math.max(min, Math.min(max, v));
     const t = (clamped - min) / (max - min);
@@ -228,6 +228,7 @@
 </body>
 
 </html>
+
 
 
 
