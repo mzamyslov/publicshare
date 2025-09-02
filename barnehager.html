@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1, width=device-width" />
+  <title>Norway Fylke/Kommuner + Barnehager</title>
+  <style>
+    html,body,#map{height:100%;margin:0}
+    .legend{position:absolute;bottom:12px;left:12px;background:#fff;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
+    .ctl{position:absolute;top:12px;left:12px;background:#fff;padding:6px 8px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
+  </style>
+  <script type="module">
+
+    // === Params ===
+    const FYLKE_GEOJSON_URL = "https://raw.githubusercontent.com/mzamyslov/publicshare/main/fylke.geojsonn";    // fulke from Geonorge formatted
+      const KOMMUNE_GEOJSON_URL = "https://raw.githubusercontent.com/mzamyslov/publicshare/main/kommune.geojson";  // kommunes from Geonorge formatted
+    const BARNEHAGER_API_URL  = "/proxy/udir/barnehager"; // ваш серверный прокси к Udir API (JSON)
+
+    // Пример: таблица показателей по fylke/kommune (ключи — номера/коды). Подставьте свои данные.
+    const metricsFylke   = {}; // { "03": 12.3, "11": 7.9, ... }
+    const metricsKommune = {}; // { "0301": 10.1, "1103": 5.2, ... }
+
+    // Функция маппинга "значение -> цвет"
+    function colorScale(v){
+      if (v == null || isNaN(v)) return "#e0e0e0";
+      if (v < 5)   return "#cfe8ff";
+      if (v < 10)  return "#9dd1ff";
+      if (v < 15)  return "#6bb9ff";
+      if (v < 20)  return "#399eff";
+      return "#0078ff";
+    }
+
+    // Цвет точки детсада по его значению (например, рейтинг/показатель)
+    function pointColor(v){
+      if (v == null) return "#666";
+      if (v < 5)  return "#ffb3b3";
+      if (v < 10) return "#ff8080";
+      return "#ff3333";
+    }
+
+    // === ИНИЦИАЛИЗАЦИЯ КАРТЫ ===
+    let map, fylkeLayer, kommuneLayer, markers = [], markerCluster;
+
+    async function initMap(){
+      const { Map } = await google.maps.importLibrary("maps");
+      const { Marker } = await google.maps.importLibrary("marker");
+
+      map = new Map(document.getElementById("map"), {
+        center: {lat: 64.5, lng: 11.0},
+        zoom: 4.8, // быстро "подлетим" к Норвегии
+        mapId: "DEMO_MAP_ID" // (опционально) ваш vector mapId из Cloud Console
+      });
+      map.addListener("tilesloaded", ()=>map.setZoom(5.2)); // доведение после загрузки
+
+      // Загрузим и нарисуем fylke
+      fylkeLayer = await addChoroplethLayer(FYLKE_GEOJSON_URL, feature => {
+        const id = feature.getProperty("fylkesnummer") || feature.getProperty("fylke_nr");
+        const v  = metricsFylke[id];
+        return {
+          fillColor: colorScale(v),
+          strokeColor: "#444",
+          strokeWeight: 1,
+          fillOpacity: 0.7
+        };
+      });
+
+      // Загрузим kommuner (скрыты на дальнем масштабе)
+      kommuneLayer = await addChoroplethLayer(KOMMUNE_GEOJSON_URL, feature => {
+        const id = feature.getProperty("kommunenummer") || feature.getProperty("komm_nr");
+        const v  = metricsKommune[id];
+        return {
+          fillColor: colorScale(v),
+          strokeColor: "#555",
+          strokeWeight: 0.7,
+          fillOpacity: 0.75
+        };
+      });
+      kommuneLayer.setMap(null); // пока скрыт
+
+      // Переключение слоёв по зуму
+      const showKommunerFromZoom = 8;
+      map.addListener("zoom_changed", ()=>{
+        const z = map.getZoom();
+        if (z >= showKommunerFromZoom){
+          fylkeLayer.setMap(null);
+          kommuneLayer.setMap(map);
+        } else {
+          kommuneLayer.setMap(null);
+          fylkeLayer.setMap(map);
+        }
+      });
+
+      // Точки детсадов
+      await addBarnehager();
+
+      // Легенда
+      buildLegend();
+    }
+
+    async function addChoroplethLayer(url, styleFn){
+      // Используем новую VectorFeatureLayer через DataLayer-полифилл на GeoJSON
+      // (универсально и прозрачно). Для крупных файлов включите gzip на сервере.
+      const layer = new google.maps.Data({ map });
+      const resp = await fetch(url, {cache:"no-store"});
+      const gj = await resp.json();
+      layer.addGeoJson(gj, { idPropertyName: "id" });
+      layer.setStyle(styleFn);
+
+      layer.addListener("mouseover", e => {
+        layer.overrideStyle(e.feature, { strokeWeight: 2 });
+        map.getDiv().style.cursor = "pointer";
+      });
+      layer.addListener("mouseout", e => {
+        layer.revertStyle(e.feature);
+        map.getDiv().style.cursor = "default";
+      });
+      layer.addListener("click", e => {
+        const name = e.feature.getProperty("navn") || e.feature.getProperty("name");
+        const val =
+          metricsFylke[e.feature.getProperty("fylkesnummer")] ??
+          metricsKommune[e.feature.getProperty("kommunenummer")];
+        new google.maps.InfoWindow({
+          content: `<b>${name ?? "Region"}</b><br/>Значение: ${val ?? "—"}`
+        }).open({ map, position: e.latLng });
+      });
+
+      return layer;
+    }
+
+    async function addBarnehager(){
+      const resp = await fetch(BARNEHAGER_API_URL, {cache:"no-store"});
+      const items = await resp.json(); // ожидается массив {lat, lng, value, name, ...}
+      for (const it of items){
+        const m = new google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: {lat: it.lat, lng: it.lng},
+          content: pinSvg(pointColor(it.value)),
+          title: it.name || "Barnehage"
+        });
+        m.addListener("click", ()=>{
+          new google.maps.InfoWindow({
+            content: `<b>${it.name ?? "Barnehage"}</b><br/>Показатель: ${it.value ?? "—"}`
+          }).open({ map, anchor: m });
+        });
+        markers.push(m);
+      }
+      // Кластеризация (опционально)
+      const { MarkerClusterer } = await import("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
+      markerCluster = new MarkerClusterer({ markers, map });
+    }
+
+    // Простой SVG-пин нужного цвета
+    function pinSvg(color){
+      const div = document.createElement("div");
+      div.innerHTML = `
+        <svg width="24" height="36" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 36s10-12 10-21A10 10 0 1 0 2 15c0 9 10 21 10 21z" fill="${color}"/>
+          <circle cx="12" cy="14" r="4" fill="#fff"/>
+        </svg>`;
+      return div;
+    }
+
+    window.initMap = initMap;
+  </script>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="ctl">Колеса: зум · Клик: инфо</div>
+  <div class="legend" id="legend">Легенда</div>
+  <script>
+    function buildLegend(){
+      const lg = document.getElementById("legend");
+      const bins = [[0,5],[5,10],[10,15],[15,20],[20,Infinity]];
+      for (const [a,b] of bins){
+        const v = a===0 ? 4.9 : a+0.1;
+        const c = (b===Infinity) ? colorScale(25) : colorScale(v);
+        const label = (b===Infinity) ? `${a}+` : `${a}–${b}`;
+        const row = document.createElement("div");
+        row.innerHTML = `<span style="display:inline-block;width:12px;height:12px;background:${c};border:1px solid #aaa;margin-right:6px;"></span>${label}`;
+        lg.appendChild(row);
+      }
+    }
+  </script>
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_MAPS_API_KEY&libraries=maps,marker&callback=initMap"></script>
+</body>
+</html>
