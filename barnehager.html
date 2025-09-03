@@ -54,15 +54,15 @@
   };
   
   // ===================== COLOR SCALES =====================
-  function colorScale(v, min=5, max=9){
+  function colorScale(v, min=2, max=10){
     if (v == null || isNaN(v)) return "#e0e0e0";
     const clamped = Math.max(min, Math.min(max, v));
     const t = (clamped - min) / (max - min);
-    const hue = 0 + t * 120; // 0=красный → 120=зелёный
+    const hue = 0 + t * 120; // 0=red → 120=green
     return `hsl(${hue}, 100%, 50%)`;
   }
   
-  function pointColor(v, min=2.6, max=5){
+  function pointColor(v, min=2, max=10){
     if (v == null || isNaN(v)) return "#666";
     const clamped = Math.max(min, Math.min(max, v));
     const t = (clamped - min) / (max - min);
@@ -73,8 +73,8 @@
   // ===================== HELPERS =====================
   function clamp01(x){ return Math.min(1, Math.max(0, x)); }
   
-  // Прозрачность, которая УМЕНЬШАЕТСЯ при увеличении зума:
-  // при minZoom → maxOpacity, при maxZoom → minOpacity
+  //Transparency decreases with zoom:
+  // when minZoom → maxOpacity, when maxZoom → minOpacity
   function opacityForZoomDown(zoom, cfg){
     const t = clamp01((zoom - cfg.minZoom) / (cfg.maxZoom - cfg.minZoom));
     return cfg.maxOpacity - t * (cfg.maxOpacity - cfg.minOpacity);
@@ -92,7 +92,7 @@
       styles: CFG.mapStyle
     });
   
-    // Слои
+    // Layers
     const styleFylke = f => {
       const id = f.getProperty("fylkesnummer") || f.getProperty("fylke_nr");
       const v = (typeof metricsFylke !== "undefined") ? metricsFylke[id] : undefined;
@@ -121,9 +121,9 @@
   
     fylkeLayer   = await addChoroplethLayer(CFG.urls.fylke,   styleFylke);
     kommuneLayer = await addChoroplethLayer(CFG.urls.kommune, styleKommune);
-    kommuneLayer.setMap(null); // по умолчанию скрыт
+    kommuneLayer.setMap(null); // Hidden by default
   
-    // Переключение слоёв + обновление стилей на каждый зум
+    // Switching layers + refreshing styles on zoom
     map.addListener("zoom_changed", ()=>{
       const z = map.getZoom();
       if (z >= CFG.zoom.showKommunerFrom){
@@ -133,15 +133,15 @@
         kommuneLayer.setMap(null);
         fylkeLayer.setMap(map);
       }
-      // перезапросить стили (Data заново применит styleFn)
+      // re-request styles (Data will apply styleFn again)
       fylkeLayer.setStyle(styleFylke);
       kommuneLayer.setStyle(styleKommune);
     });
   
-    // Точки Barnehager как кружки
+    // Points Barnehager as circles
     await addBarnehager();
   
-    // Легенду можно вернуть при желании
+    // Legend can be uncommunted if needed
     // buildLegend();
   }
   
@@ -181,10 +181,10 @@
       const circle = new google.maps.Circle({
         map,
         center: {lat: it.lat, lng: it.lng},
-        radius: CFG.points.radiusM,               // в метрах
+        radius: CFG.points.radiusM,               // in meters
         strokeWeight: CFG.points.strokeWeight,
-        strokeColor: pointColor(it.value, 2, 9),  // градиент красный→зелёный
-        fillColor:   pointColor(it.value, 2, 9),
+        strokeColor: pointColor(it.value, 2, 5),  // gradient from red to green
+        fillColor:   pointColor(it.value, 2, 5),
         fillOpacity: 0.9,
         zIndex: 1000
       });
@@ -228,6 +228,7 @@
 </body>
 
 </html>
+
 
 
 
