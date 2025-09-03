@@ -6,8 +6,29 @@
   <title>Norway Fylke/Kommuner + Barnehager</title>
   <style>
     html,body,#map{height:100%;margin:0}
-    .legend{position:absolute;bottom:12px;left:12px;background:#fff;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
+    .legend{position:absolute;bottom:12px;left:12px;background:#fff;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}    
     .ctl{position:absolute;top:12px;left:12px;background:#fff;padding:6px 8px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
+    .bh-label{
+      position: relative;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: 0.2px;
+      color: #111;              /* dark text */
+      text-align: center;
+      transform: translate(-50%, -50%); /* center of the marker */
+      /* white border around the text */
+      text-shadow:
+        -1px -1px 0 #fff,
+         0   -1px 0 #fff,
+         1px -1px 0 #fff,
+        -1px  0   0 #fff,
+         1px  0   0 #fff,
+        -1px  1px 0 #fff,
+         0    1px 0 #fff,
+         1px  1px 0 #fff;
+      pointer-events: none;     /* click goes through the label to the cicrcle */
+    }
   </style>
   <script src="metrics.js"></script>
 <script defer type="module">
@@ -20,10 +41,10 @@
     },
     zoom: {
       initial: 5.2,
-      showKommunerFrom: 9, // с какого зума показывать kommuner вместо fylke
+      showKommunerFrom: 9, // from which zoom level to show kommunes instead of fylke.
     },
     opacity: {
-      // ВАЖНО: maxOpacity применяется на малом зуме, minOpacity — на большом (уменьшаем opacity при приближении)
+      // IMPORTANT: maxOpacity uses on the low zoom, minOpacity — on a high zoom (reducing opacity on zooming)
       fylke:   { minZoom: 1,  maxZoom: 9,  maxOpacity: 0.95, minOpacity: 0.55 },
       kommune: { minZoom: 9,  maxZoom: 13, maxOpacity: 0.55, minOpacity: 0.0 },
     },
@@ -35,6 +56,7 @@
       radiusM: 40,
       strokeWeight: 4,
     },
+    labels: { showFromZoom: 10, minPx: 10, maxPx: 18 },
     mapStyle: [
       { elementType: "geometry", stylers: [{ color: "#5a5a5a" }] },
       { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
@@ -52,6 +74,8 @@
       { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#666666" }] }
     ],
   };
+
+  
   
   // ===================== COLOR SCALES =====================
   function colorScale(v, min=0.0, max=10.0){
@@ -79,9 +103,17 @@
     const t = clamp01((zoom - cfg.minZoom) / (cfg.maxZoom - cfg.minZoom));
     return cfg.maxOpacity - t * (cfg.maxOpacity - cfg.minOpacity);
   }
+
+  function fontPxForZoom(z, minPx=CFG.labels.minPx, maxPx=CFG.labels.maxPx){
+    // simple ruler: z=CFG.zoom.showKommunerFrom → minPx, z=14 → maxPx
+    const z0 = CFG.labels.showFromZoom;
+    const z1 = 14;
+    const t = Math.min(1, Math.max(0, (z - z0) / (z1 - z0)));
+    return Math.round(minPx + t * (maxPx - minPx));
+  }
   
   // ===================== MAP + LAYERS =====================
-  let map, fylkeLayer, kommuneLayer, markers = [];
+  let map, fylkeLayer, kommuneLayer, markers = [], labels = [];
   
   async function initMap(){
     const { Map } = await google.maps.importLibrary("maps");
@@ -136,6 +168,20 @@
       // re-request styles (Data will apply styleFn again)
       fylkeLayer.setStyle(styleFylke);
       kommuneLayer.setStyle(styleKommune);
+
+      // refresh label: visibility + font size
+      const show = z >= CFG.labels.showFromZoom;
+      const fs = fontPxForZoom(z);
+      for (const {label, el} of labels){
+       el.style.fontSize = fs + "px";
+       // switch visibility without recreation
+       const currentlyVisible = !!label.map;
+       if (show && !currentlyVisible) label.map = map;
+       if (!show && currentlyVisible) label.map = null;
+      }
+
+
+      
     });
   
     // Points Barnehager as circles
@@ -194,6 +240,23 @@
         }).open({ map, position: {lat: it.lat, lng: it.lng} });
       });
       markers.push(circle);
+
+      // === label - value over the circle ===
+      const labelDiv = document.createElement("div");
+      labelDiv.className = "bh-label";
+      const hasVal = typeof it.value === "number" && !Number.isNaN(it.value);
+      labelDiv.textContent = hasVal ? it.value.toFixed(1) : "—";
+      labelDiv.style.fontSize = fontPxForZoom(map.getZoom()) + "px";
+      
+      const label = new google.maps.marker.AdvancedMarkerElement({
+       map,
+       position: {lat: it.lat, lng: it.lng},
+       content: labelDiv,
+       zIndex: 1200  // over polyghons and circles
+      });
+      // visibility starting from specified zoom level
+      label.map = (map.getZoom() >= CFG.labels.showFromZoom) ? map : null;
+      labels.push({ label, el: labelDiv });
     }
   }
   
@@ -228,6 +291,7 @@
 </body>
 
 </html>
+
 
 
 
