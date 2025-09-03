@@ -150,7 +150,7 @@
       layer.addListener("click", e => {
         const name = e.feature.getProperty("navn") || e.feature.getProperty("name");
         const val = (typeof metricsFylke !== "undefined" ? metricsFylke[e.feature.getProperty("fylkesnummer")] : undefined) ?? (typeof metricsKommune !== "undefined" ? metricsKommune[e.feature.getProperty("kommunenummer")] : undefined);
-        new google.maps.InfoWindow({ content: `<b>${name ?? "Region"}</b><br/>Значение: ${val ?? "—"}` }).open({ map, position: e.latLng });
+        new google.maps.InfoWindow({ content: `<b>${name ?? "Region"}</b><br/>Tilfredshet: ${val ?? "—"}` }).open({ map, position: e.latLng });
       });
       return layer;
     }
@@ -166,7 +166,7 @@
           fillColor: pointColor(it.value, 2, 9),
           fillOpacity: 0.9, zIndex: 1000
         });
-        circle.addListener("click", ()=>{ new google.maps.InfoWindow({ content: `<b>${it.name ?? "Barnehage"}</b><br/>Показатель: ${it.value ?? "—"}` }).open({ map, position: {lat: it.lat, lng: it.lng} }); });
+        circle.addListener("click", ()=>{ new google.maps.InfoWindow({ content: `<b>${it.name ?? "Barnehage"}</b><br/>Tilfredshet: ${it.value ?? "—"}` }).open({ map, position: {lat: it.lat, lng: it.lng} }); });
         markers.push(circle);
         const labelText = (typeof it.value === "number" && !Number.isNaN(it.value)) ? it.value.toFixed(1) : "—";
         const overlay = new BHLabel(new google.maps.LatLng(it.lat, it.lng), labelText, fontPx);
