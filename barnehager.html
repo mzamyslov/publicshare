@@ -15,7 +15,7 @@
       font-weight:600;
       line-height:1;
       letter-spacing:0.2px;
-      color:#666;
+      color:#888;
       text-align:center;
       transform:translate(-50%,-50%); /* center in the middle of the circle */
       text-shadow:
@@ -55,7 +55,7 @@
     labels: {
       showFromZoom: 15,  // sterting zoom level for showing barnehage labels
       minPx: 20,         // minimum label size
-      maxPx: 38          // maximum label size
+      maxPx: 40          // maximum label size
     },
     mapStyle: [
       { elementType: "geometry", stylers: [{ color: "#5a5a5a" }] },
@@ -103,7 +103,7 @@
   }
 
   function fontPxForZoom(z, minPx = CFG.labels.minPx, maxPx = CFG.labels.maxPx){
-    const z0 = CFG.labels.showFromZoom, z1 = 14; // by 14-th zoom maxPx is reached
+    const z0 = CFG.labels.showFromZoom, z1 = 30; // by 14-th zoom maxPx is reached
     const t = Math.min(1, Math.max(0, (z - z0) / (z1 - z0)));
     return Math.round(minPx + t * (maxPx - minPx));
   }
