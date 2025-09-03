@@ -96,7 +96,7 @@
     const styleFylke = f => {
       const id = f.getProperty("fylkesnummer") || f.getProperty("fylke_nr");
       const v = (typeof metricsFylke !== "undefined") ? metricsFylke[id] : undefined;
-      const c = colorScale(v, 2, 5);
+      const c = colorScale(v, 4.38, 4.6);
       return {
         fillColor: c,
         fillOpacity: opacityForZoomDown(map.getZoom(), CFG.opacity.fylke),
@@ -109,7 +109,7 @@
     const styleKommune = f => {
       const id = f.getProperty("kommunenummer") || f.getProperty("komm_nr");
       const v = (typeof metricsKommune !== "undefined") ? metricsKommune[id] : undefined;
-      const c = colorScale(v, 2, 5);
+      const c = colorScale(v, 3.3, 4.9);
       return {
         fillColor: c,
         fillOpacity: opacityForZoomDown(map.getZoom(), CFG.opacity.kommune),
@@ -228,6 +228,7 @@
 </body>
 
 </html>
+
 
 
 
