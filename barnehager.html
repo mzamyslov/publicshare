@@ -136,6 +136,8 @@
       setFontPx(px){ this.el.style.fontSize = `${px}px`; }
       setVisible(v){ this.el.style.display = v ? "block" : "none"; }
     }
+
+    window.BHLabel = BHLabel;
   
     map = new Map(document.getElementById("map"), {
       center: {lat: 64.5, lng: 11.0},
@@ -251,7 +253,7 @@
       });
       circle.addListener("click", ()=>{
         new google.maps.InfoWindow({
-          content: `<b>${it.name ?? "Barnehage"}</b><br/>Показатель: ${it.value ?? "—"}`
+          content: `<b>${it.name ?? "Barnehage"}</b><br/>Value: ${it.value ?? "—"}`
         }).open({ map, position: {lat: it.lat, lng: it.lng} });
       });
       markers.push(circle);
@@ -260,7 +262,7 @@
       const labelText = (typeof it.value === "number" && !Number.isNaN(it.value))
         ? it.value.toFixed(1) : "—";
       const z = map.getZoom();
-      const overlay = new BHLabel(
+      const overlay = new window.BHLabel(
         new google.maps.LatLng(it.lat, it.lng),
         labelText,
         fontPxForZoom(z)
