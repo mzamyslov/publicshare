@@ -54,7 +54,7 @@
   };
   
   // ===================== COLOR SCALES =====================
-  function colorScale(v, min=2, max=10){
+  function colorScale(v, min=2.0, max=10.0){
     if (v == null || isNaN(v)) return "#e0e0e0";
     const clamped = Math.max(min, Math.min(max, v));
     const t = (clamped - min) / (max - min);
@@ -62,7 +62,7 @@
     return `hsl(${hue}, 100%, 50%)`;
   }
   
-  function pointColor(v, min=2, max=10){
+  function pointColor(v, min=2.0, max=10.0){
     if (v == null || isNaN(v)) return "#666";
     const clamped = Math.max(min, Math.min(max, v));
     const t = (clamped - min) / (max - min);
@@ -183,8 +183,8 @@
         center: {lat: it.lat, lng: it.lng},
         radius: CFG.points.radiusM,               // in meters
         strokeWeight: CFG.points.strokeWeight,
-        strokeColor: pointColor(it.value, 2, 5),  // gradient from red to green
-        fillColor:   pointColor(it.value, 2, 5),
+        strokeColor: pointColor(it.value, 3, 5),  // gradient from red to green
+        fillColor:   pointColor(it.value, 3, 5),
         fillOpacity: 0.9,
         zIndex: 1000
       });
@@ -228,6 +228,7 @@
 </body>
 
 </html>
+
 
 
 
