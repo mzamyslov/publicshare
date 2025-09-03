@@ -54,45 +54,47 @@
       return Math.round(minPx + t * (maxPx - minPx));
     }
 
-    class BHLabel extends google.maps.OverlayView {
-      constructor(position, text, fontPx) {
-        super();
-        this.position = position;
-        this.el = document.createElement("div");
-        this.el.className = "bh-label";
-        this.setText(text);
-        this.setFontPx(fontPx);
-      }
-      onAdd() {
-        this.getPanes().overlayMouseTarget.appendChild(this.el);
-      }
-      draw() {
-        const p = this.getProjection(); 
-        if (!p) return;
-        const pt = p.fromLatLngToDivPixel(this.position); 
-        if (!pt) return;
-        this.el.style.position = "absolute";
-        this.el.style.left = `${pt.x}px`;
-        this.el.style.top = `${pt.y}px`;
-      }
-      onRemove() {
-        if (this.el?.parentNode) this.el.parentNode.removeChild(this.el);
-      }
-      setText(t) { this.el.textContent = t; }
-      setFontPx(px) { this.el.style.fontSize = `${px}px`; }
-      setVisible(v) { this.el.style.display = v ? "block" : "none"; }
-    }
-
     let map, markers = [], labels = [];
 
     async function initMap() {
       const { Map } = await google.maps.importLibrary("maps");
+
+      // Define BHLabel AFTER Google Maps is loaded (no MapID required)
+      class BHLabel extends google.maps.OverlayView {
+        constructor(position, text, fontPx) {
+          super();
+          this.position = position;
+          this.el = document.createElement("div");
+          this.el.className = "bh-label";
+          this.setText(text);
+          this.setFontPx(fontPx);
+        }
+        onAdd() {
+          this.getPanes().overlayMouseTarget.appendChild(this.el);
+        }
+        draw() {
+          const p = this.getProjection(); 
+          if (!p) return;
+          const pt = p.fromLatLngToDivPixel(this.position); 
+          if (!pt) return;
+          this.el.style.position = "absolute";
+          this.el.style.left = `${pt.x}px`;
+          this.el.style.top = `${pt.y}px`;
+        }
+        onRemove() {
+          if (this.el?.parentNode) this.el.parentNode.removeChild(this.el);
+        }
+        setText(t) { this.el.textContent = t; }
+        setFontPx(px) { this.el.style.fontSize = `${px}px`; }
+        setVisible(v) { this.el.style.display = v ? "block" : "none"; }
+      }
+
       map = new Map(document.getElementById("map"), {
         center: { lat: 64.5, lng: 11.0 },
         zoom: CFG.zoom.initial
       });
 
-      await addBarnehager();
+      await addBarnehager(BHLabel);
 
       map.addListener("zoom_changed", () => {
         const z = map.getZoom();
@@ -106,7 +108,7 @@
       });
     }
 
-    async function addBarnehager() {
+    async function addBarnehager(BHLabel) {
       const resp = await fetch(CFG.urls.barnehager, { cache: "no-store" });
       const items = await resp.json();
       const z = map.getZoom();
@@ -135,6 +137,7 @@
       }
     }
 
+    // expose for callback
     window.initMap = initMap;
 
   </script>
