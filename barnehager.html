@@ -8,6 +8,23 @@
     html,body,#map{height:100%;margin:0}
     .legend{position:absolute;bottom:12px;left:12px;background:#fff;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
     .ctl{position:absolute;top:12px;left:12px;background:#fff;padding:6px 8px;border:1px solid #ccc;border-radius:8px;font:12px system-ui}
+    /* styles for labels over the circles */
+    .bh-label{
+      position:relative;
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      font-weight:600;
+      line-height:1;
+      letter-spacing:0.2px;
+      color:#111;
+      text-align:center;
+      transform:translate(-50%,-50%); /* center in the middle of the circle */
+      text-shadow:
+        -1px -1px 0 #fff,  0 -1px 0 #fff,  1px -1px 0 #fff,
+        -1px  0   0 #fff,  1px  0   0 #fff,
+        -1px  1px 0 #fff,  0  1px 0 #fff,  1px  1px 0 #fff;
+      pointer-events:none; /* passthrough clicks */
+    }
+    
   </style>
   <script src="metrics.js"></script>
 <script defer type="module">
@@ -20,10 +37,10 @@
     },
     zoom: {
       initial: 5.2,
-      showKommunerFrom: 9, // с какого зума показывать kommuner вместо fylke
+      showKommunerFrom: 9, // Zoom - begining from this zoom level kommune shown instead of fylke
     },
     opacity: {
-      // ВАЖНО: maxOpacity применяется на малом зуме, minOpacity — на большом (уменьшаем opacity при приближении)
+      // IMPORTANT: maxOpacity is used for minimum zoom, minOpacity — for max zoom (reducing opacity on zooming in)
       fylke:   { minZoom: 1,  maxZoom: 9,  maxOpacity: 0.95, minOpacity: 0.55 },
       kommune: { minZoom: 9,  maxZoom: 13, maxOpacity: 0.55, minOpacity: 0.0 },
     },
@@ -34,6 +51,11 @@
     points: {
       radiusM: 40,
       strokeWeight: 4,
+    },
+    labels: {
+      showFromZoom: 10,  // sterting zoom level for showing barnehage labels
+      minPx: 10,         // minimum label size
+      maxPx: 18          // maximum label size
     },
     mapStyle: [
       { elementType: "geometry", stylers: [{ color: "#5a5a5a" }] },
@@ -48,7 +70,7 @@
       { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#ffffff" }] },
       { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#9c9c9c" }] },
       { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#a8a8a8" }] },
-      { featureType: "water", elementType: "geometry", stylers: [{ color: "#d6d6d6" }] }, // светлее суши
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#d6d6d6" }] }, 
       { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#666666" }] }
     ],
   };
@@ -79,12 +101,41 @@
     const t = clamp01((zoom - cfg.minZoom) / (cfg.maxZoom - cfg.minZoom));
     return cfg.maxOpacity - t * (cfg.maxOpacity - cfg.minOpacity);
   }
+
+  function fontPxForZoom(z, minPx = CFG.labels.minPx, maxPx = CFG.labels.maxPx){
+    const z0 = CFG.labels.showFromZoom, z1 = 14; // by 14-th zoom maxPx is reached
+    const t = Math.min(1, Math.max(0, (z - z0) / (z1 - z0)));
+    return Math.round(minPx + t * (maxPx - minPx));
+  }
   
   // ===================== MAP + LAYERS =====================
-  let map, fylkeLayer, kommuneLayer, markers = [];
+  let map, fylkeLayer, kommuneLayer, markers = [], labels = [];
   
   async function initMap(){
     const { Map } = await google.maps.importLibrary("maps");
+
+    class BHLabel extends google.maps.OverlayView {
+      constructor(position, text, fontPx) {
+        super();
+        this.position = position;
+        this.el = document.createElement("div");
+        this.el.className = "bh-label";
+        this.setText(text);
+        this.setFontPx(fontPx);
+      }
+      onAdd(){ this.getPanes().overlayMouseTarget.appendChild(this.el); }
+      draw(){
+        const p = this.getProjection(); if(!p) return;
+        const pt = p.fromLatLngToDivPixel(this.position); if(!pt) return;
+        this.el.style.position = "absolute";
+        this.el.style.left = `${pt.x}px`;
+        this.el.style.top  = `${pt.y}px`;
+      }
+      onRemove(){ if(this.el?.parentNode) this.el.parentNode.removeChild(this.el); }
+      setText(t){ this.el.textContent = t; }
+      setFontPx(px){ this.el.style.fontSize = `${px}px`; }
+      setVisible(v){ this.el.style.display = v ? "block" : "none"; }
+    }
   
     map = new Map(document.getElementById("map"), {
       center: {lat: 64.5, lng: 11.0},
@@ -136,6 +187,16 @@
       // re-request styles (Data will apply styleFn again)
       fylkeLayer.setStyle(styleFylke);
       kommuneLayer.setStyle(styleKommune);
+
+
+      const z = map.getZoom();
+      const show = z >= CFG.labels.showFromZoom;
+      const fs = fontPxForZoom(z);
+      for (const o of labels){
+        o.setFontPx(fs);
+        o.setVisible(show);
+        o.draw(); // обновить позицию при движении
+      }
     });
   
     // Points Barnehager as circles
@@ -194,6 +255,21 @@
         }).open({ map, position: {lat: it.lat, lng: it.lng} });
       });
       markers.push(circle);
+
+      // подпись-значение поверх кружка
+      const labelText = (typeof it.value === "number" && !Number.isNaN(it.value))
+        ? it.value.toFixed(1) : "—";
+      const z = map.getZoom();
+      const overlay = new BHLabel(
+        new google.maps.LatLng(it.lat, it.lng),
+        labelText,
+        fontPxForZoom(z)
+      );
+      // показать только с нужного зума
+      overlay.setMap(map);
+      overlay.setVisible(z >= CFG.labels.showFromZoom);
+      labels.push(overlay);
+      
     }
   }
   
